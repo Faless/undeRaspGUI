@@ -5,6 +5,27 @@ from gi.repository import Gtk, GObject, GLib
 from datetime import datetime
 import threading
 import time
+from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCanvas
+from plotter import plotter
+
+class PlotterGUI:
+
+    def __init__(self):
+        self.builder = Gtk.Builder()
+        self.builder.add_from_file("plotter.xml")
+        self.window = self.builder.get_object("plotter_window")
+
+        cdt = plotter.get_dict_from_file("data/test.txt")
+        plt = plotter.get_plot_from_dict(cdt)
+        plt.draw()
+
+        self.canvas = FigureCanvas(plt.gcf())
+        self.canvas.set_size_request(750, 550)
+        self.builder.get_object("plotter_scrollable").add_with_viewport(self.canvas)
+        self.window.show_all()
+
+    def destroy(self):
+        self.window.destroy()
 
 class UnderRaspWaterGUI:
 
@@ -22,6 +43,9 @@ class UnderRaspWaterGUI:
         # This is the job funciton, will be executed by the worker if not None
         self.job = None
         self.stop_thread = False
+
+        # The plotter GUI
+        self.plotter = None
 
         # Parse the XML file
         self.builder = Gtk.Builder()
@@ -41,6 +65,9 @@ class UnderRaspWaterGUI:
         # Timestamp editing signals
         self.builder.get_object("eeprom_time_write").connect("button-release-event", self.open_time_dialog)
         self.builder.get_object("rtc_time_write").connect("button-release-event", self.open_time_dialog)
+
+        # Sensor data signals
+        self.builder.get_object("read_sensors_btn").connect("button-release-event", self.read_sensors_data)
 
         # Show window
         self.window.show_all()
@@ -71,6 +98,11 @@ class UnderRaspWaterGUI:
                 self.set_job(self.thread_test_job, "Sending data to RTC")
             else:
                 self.set_job(self.thread_test_job, "Sending data to EEPROM")
+
+    def read_sensors_data(self, widget, event):
+        if self.plotter is not None:
+            self.plotter.destroy()
+        self.plotter = PlotterGUI()
 
     def update_time_dialog(self):
         date = datetime.utcnow()
