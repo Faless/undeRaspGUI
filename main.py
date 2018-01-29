@@ -5,7 +5,8 @@ from gi.repository import Gtk, GObject, GLib
 from datetime import datetime
 import threading
 import time
-from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCanvas
+from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo as FigureCanvas
+from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
 from plotter import plotter
 
 class PlotterGUI:
@@ -21,7 +22,9 @@ class PlotterGUI:
 
         self.canvas = FigureCanvas(plt.gcf())
         self.canvas.set_size_request(750, 550)
-        self.builder.get_object("plotter_scrollable").add_with_viewport(self.canvas)
+        self.builder.get_object("plotter_plot_scrollable").add_with_viewport(self.canvas)
+        self.toolbar = NavigationToolbar(self.canvas, self.window)
+        self.builder.get_object("plotter_toolbar_scrollable").add_with_viewport(self.toolbar)
         self.window.show_all()
 
     def destroy(self):
