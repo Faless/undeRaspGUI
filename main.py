@@ -2,12 +2,31 @@
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject, GLib
+gi.require_version('WebKit2', '4.0')
+from gi.repository import WebKit2
 from datetime import datetime
 import threading
 import time
 from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo as FigureCanvas
 from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
 from plotter import plotter
+
+class BrowserGUI:
+
+    def __init__(self):
+        self.builder = Gtk.Builder()
+        self.builder.add_from_file("browser.xml")
+        self.window = self.builder.get_object("browser_window")
+        self.webview = WebKit2.WebView()
+        self.builder.get_object("browser_content").add_with_viewport(self.webview)
+        self.window.show_all()
+
+    def load_uri(self, uri):
+        self.webview.load_uri(uri)
+
+    def destroy(self):
+        self.window.destroy()
+
 
 class PlotterGUI:
 
@@ -30,6 +49,7 @@ class PlotterGUI:
     def destroy(self):
         self.window.destroy()
 
+
 class UnderRaspWaterGUI:
 
     @staticmethod
@@ -49,6 +69,9 @@ class UnderRaspWaterGUI:
 
         # The plotter GUI
         self.plotter = None
+
+        # The browser GUI
+        self.browser = None
 
         # Parse the XML file
         self.builder = Gtk.Builder()
@@ -71,6 +94,9 @@ class UnderRaspWaterGUI:
 
         # Sensor data signals
         self.builder.get_object("read_sensors_btn").connect("button-release-event", self.read_sensors_data)
+
+        # Sensor data signals
+        self.builder.get_object("browse_images_btn").connect("button-release-event", self.open_browser)
 
         # Show window
         self.window.show_all()
@@ -106,6 +132,12 @@ class UnderRaspWaterGUI:
         if self.plotter is not None:
             self.plotter.destroy()
         self.plotter = PlotterGUI()
+
+    def open_browser(self, widget, event):
+        if self.browser is not None:
+            self.browser.destroy()
+        self.browser = BrowserGUI()
+        self.browser.load_uri("http://www.esa.int/")
 
     def update_time_dialog(self):
         date = datetime.utcnow()
