@@ -82,21 +82,21 @@ class UnderRaspWaterGUI:
         self.window.connect("delete-event", self.on_quit)
 
         # Setup logger
-        self.logger = self.builder.get_object("logs_view")
+        self.logger = self.builder.get_object("serial_logs_view")
 
         # Setupdialogs 
         self.wait_dialog = self.builder.get_object("wait_dialog")
         self.time_dialog = self.builder.get_object("time_dialog")
 
         # Timestamp editing signals
-        self.builder.get_object("eeprom_time_write").connect("button-release-event", self.open_time_dialog)
-        self.builder.get_object("rtc_time_write").connect("button-release-event", self.open_time_dialog)
+        self.builder.get_object("serial_eeprom_time_write").connect("button-release-event", self.open_time_dialog)
+        self.builder.get_object("serial_rtc_time_write").connect("button-release-event", self.open_time_dialog)
 
         # Sensor data signals
-        self.builder.get_object("read_sensors_btn").connect("button-release-event", self.read_sensors_data)
+        self.builder.get_object("net_read_sensors_btn").connect("button-release-event", self.read_sensors_data)
 
         # Sensor data signals
-        self.builder.get_object("browse_images_btn").connect("button-release-event", self.open_browser)
+        self.builder.get_object("net_browse_images_btn").connect("button-release-event", self.open_browser)
 
         # Show window
         self.window.show_all()
@@ -141,9 +141,9 @@ class UnderRaspWaterGUI:
 
     def update_time_dialog(self):
         date = datetime.utcnow()
-        self.builder.get_object("hours_value").set_value(date.hour)
-        self.builder.get_object("minutes_value").set_value(date.minute)
-        self.builder.get_object("seconds_value").set_value(date.second)
+        self.builder.get_object("serial_hours_value").set_value(date.hour)
+        self.builder.get_object("serial_minutes_value").set_value(date.minute)
+        self.builder.get_object("serial_seconds_value").set_value(date.second)
 
     def thread_test_job(self):
         for i in range(0,10):
