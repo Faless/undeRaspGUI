@@ -89,7 +89,16 @@ class SerialGUI:
     def __init__(self, builder, worker):
         self.builder = builder
         self.worker = worker
+        self.connection = None
+        self.refresh_ports()
+        self.builder.get_object("serial_connect_btn").connect("toggled", self.connect_serial)
+        self.builder.get_object("serial_commands_list").set_sensitive(False)
+        self.builder.get_object("serial_refresh_btn").connect("button-release-event", self.refresh_release)
 
+    def refresh_release(self, widget, event):
+        self.refresh_ports()
+
+    def refresh_ports(self):
         # Comm ports
         btn = self.builder.get_object("serial_port_btn")
         ports = utils.get_ports_list()
@@ -100,16 +109,24 @@ class SerialGUI:
         btn.set_entry_text_column(0)
         if len(ports) > 0:
             btn.set_active(0)
-        self.builder.get_object("serial_connect_btn").connect("toggled", self.connect_serial)
-        self.builder.get_object("serial_commands_list").set_sensitive(False)
+            self.builder.get_object("serial_connect_btn").set_sensitive(True)
+        else:
+            btn.set_active(-1)
+            self.builder.get_object("serial_connect_btn").set_sensitive(False)
 
     def connect_serial(self, widget):
-        print(widget.get_active())
         if widget.get_active():
             btn = self.builder.get_object("serial_port_btn")
-            print(btn.get_active_id())
-            self.builder.get_object("serial_commands_list").set_sensitive(True)
+            self.connection = utils.get_serial(btn.get_active_id())
+            if not self.connection.is_open:
+                self.connection = None
+                widget.set_active(False)
+            else:
+                self.builder.get_object("serial_commands_list").set_sensitive(True)
         else:
+            if self.connection != None and self.connection.is_open:
+                self.connection.close()
+            self.connection = None
             self.builder.get_object("serial_commands_list").set_sensitive(False)
 
 
