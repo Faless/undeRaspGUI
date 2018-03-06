@@ -86,8 +86,9 @@ class Worker:
 
 class SerialGUI:
 
-    def __init__(self, builder, worker):
+    def __init__(self, builder, logger, worker):
         self.builder = builder
+        self.logger = logger
         self.worker = worker
         self.connection = None
         self.refresh_ports()
@@ -121,13 +122,21 @@ class SerialGUI:
             if not self.connection.is_open:
                 self.connection = None
                 widget.set_active(False)
+                self.append_log("Connection failed!")
             else:
                 self.builder.get_object("serial_commands_list").set_sensitive(True)
+                self.append_log("Connected to port: %s" % self.connection.port)
         else:
             if self.connection != None and self.connection.is_open:
                 self.connection.close()
+            self.append_log("Disconnected!")
             self.connection = None
             self.builder.get_object("serial_commands_list").set_sensitive(False)
+
+    def append_log(self, what):
+        buf = self.logger.get_buffer()
+        buf.insert(buf.get_end_iter(), "%s\n" % what)
+        return False
 
 
 class UnderRaspWaterGUI:
@@ -168,7 +177,7 @@ class UnderRaspWaterGUI:
         self.builder.get_object("net_browse_images_btn").connect("button-release-event", self.open_browser)
 
         # Setup SerialGUI
-        self.serialgui = SerialGUI(self.builder, self.worker)
+        self.serialgui = SerialGUI(self.builder, self.logger, self.worker)
 
         # Show window
         self.window.show_all()
