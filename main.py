@@ -10,6 +10,7 @@ import time
 from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo as FigureCanvas
 from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
 from plotter import plotter
+from utils import utils
 
 class BrowserGUI:
 
@@ -49,8 +50,7 @@ class PlotterGUI:
     def destroy(self):
         self.window.destroy()
 
-
-class UnderRaspWaterGUI:
+class Worker:
 
     @staticmethod
     def _worker(gui):
@@ -61,11 +61,61 @@ class UnderRaspWaterGUI:
                 GLib.idle_add(gui.wait_dialog.hide)
             time.sleep(0.05)
 
-    def __init__(self):
+    def __init__(self, builder):
+
+        self.builder = builder
+        self.wait_dialog = self.builder.get_object("wait_dialog")
 
         # This is the job funciton, will be executed by the worker if not None
         self.job = None
         self.stop_thread = False
+
+        # Init the worker
+        self.thread = threading.Thread(target=Worker._worker, args=(self,))
+        self.thread.daemon = True
+        self.thread.start()
+
+    def set_job(self, func, title=""):
+        assert(self.job is None)
+        if title == "":
+            title = "Running command..."
+        self.builder.get_object("wait_label").set_label(title)
+        self.wait_dialog.show_all()
+        self.job = func
+
+
+class SerialGUI:
+
+    def __init__(self, builder, worker):
+        self.builder = builder
+        self.worker = worker
+
+        # Comm ports
+        btn = self.builder.get_object("serial_port_btn")
+        ports = utils.get_ports_list()
+        port_store = Gtk.ListStore(str, str)
+        for p in ports:
+            port_store.append(p)
+        btn.set_model(port_store)
+        btn.set_entry_text_column(0)
+        if len(ports) > 0:
+            btn.set_active(0)
+        self.builder.get_object("serial_connect_btn").connect("toggled", self.connect_serial)
+        self.builder.get_object("serial_commands_list").set_sensitive(False)
+
+    def connect_serial(self, widget):
+        print(widget.get_active())
+        if widget.get_active():
+            btn = self.builder.get_object("serial_port_btn")
+            print(btn.get_active_id())
+            self.builder.get_object("serial_commands_list").set_sensitive(True)
+        else:
+            self.builder.get_object("serial_commands_list").set_sensitive(False)
+
+
+class UnderRaspWaterGUI:
+
+    def __init__(self):
 
         # The plotter GUI
         self.plotter = None
@@ -77,6 +127,9 @@ class UnderRaspWaterGUI:
         self.builder = Gtk.Builder()
         self.builder.add_from_file("main.xml")
 
+        # Start worker
+        self.worker = Worker(self.builder)
+
         # Setup window and close event handling
         self.window = self.builder.get_object("window")
         self.window.connect("delete-event", self.on_quit)
@@ -85,7 +138,6 @@ class UnderRaspWaterGUI:
         self.logger = self.builder.get_object("serial_logs_view")
 
         # Setupdialogs 
-        self.wait_dialog = self.builder.get_object("wait_dialog")
         self.time_dialog = self.builder.get_object("time_dialog")
 
         # Timestamp editing signals
@@ -98,17 +150,15 @@ class UnderRaspWaterGUI:
         # Sensor data signals
         self.builder.get_object("net_browse_images_btn").connect("button-release-event", self.open_browser)
 
+        # Setup SerialGUI
+        self.serialgui = SerialGUI(self.builder, self.worker)
+
         # Show window
         self.window.show_all()
 
-        # Init the worker
-        self.thread = threading.Thread(target=UnderRaspWaterGUI._worker, args=(self,))
-        self.thread.daemon = True
-        self.thread.start()
-
     def on_quit(self, a, b):
-        self.stop_thread = True
-        self.thread.join()
+        self.worker.stop_thread = True
+        self.worker.thread.join()
         Gtk.main_quit(a, b)
 
     def append_log(self, what):
@@ -124,9 +174,9 @@ class UnderRaspWaterGUI:
         self.time_dialog.hide()
         if response == Gtk.ResponseType.OK:
             if name == "rtc_time_write":
-                self.set_job(self.thread_test_job, "Sending data to RTC")
+                self.worker.set_job(self.thread_test_job, "Sending data to RTC")
             else:
-                self.set_job(self.thread_test_job, "Sending data to EEPROM")
+                self.worker.set_job(self.thread_test_job, "Sending data to EEPROM")
 
     def read_sensors_data(self, widget, event):
         if self.plotter is not None:
@@ -141,22 +191,14 @@ class UnderRaspWaterGUI:
 
     def update_time_dialog(self):
         date = datetime.utcnow()
-        self.builder.get_object("serial_hours_value").set_value(date.hour)
-        self.builder.get_object("serial_minutes_value").set_value(date.minute)
-        self.builder.get_object("serial_seconds_value").set_value(date.second)
+        self.builder.get_object("hours_value").set_value(date.hour)
+        self.builder.get_object("minutes_value").set_value(date.minute)
+        self.builder.get_object("seconds_value").set_value(date.second)
 
     def thread_test_job(self):
         for i in range(0,10):
             time.sleep(0.2)
         GLib.idle_add(self.append_log, "Job finished!")
-
-    def set_job(self, func, title=""):
-        assert(self.job is None)
-        if title == "":
-            title = "Running command..."
-        self.builder.get_object("wait_label").set_label(title)
-        self.wait_dialog.show_all()
-        self.job = func
 
     def read_value():
         pass
