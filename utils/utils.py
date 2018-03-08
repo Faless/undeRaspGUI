@@ -21,7 +21,7 @@ def read_all(ser, timeout=1):
     start = time()
     lines = []
     while True:
-        t = 1 - (time() - start)
+        t = timeout - (time() - start)
         if t <= 0:
             break
         ser.timeout = t
@@ -32,6 +32,7 @@ def read_all(ser, timeout=1):
             break
         if line == "":
             break
+        line = line.decode('ascii')
         lines.append(line)
     return lines
 
@@ -42,4 +43,9 @@ def read_line(ser, timeout=1):
         line = ser.readline().strip()
     except:
         pass
+    if line != "":
+        line = line.decode('ascii')
     return line
+
+def write_line(ser, data):
+    ser.write(('%s\n' % data).encode())

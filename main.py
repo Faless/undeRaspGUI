@@ -128,12 +128,86 @@ class SerialGUI:
             else:
                 self.builder.get_object("serial_commands_list").set_sensitive(True)
                 self.append_log("Connected to port: %s" % self.connection.port)
+                self.worker.set_job(self.do_connect, "Connecting to the Arduino")
         else:
             if self.connection != None and self.connection.is_open:
                 self.connection.close()
             self.append_log("Disconnected!")
             self.connection = None
             self.builder.get_object("serial_commands_list").set_sensitive(False)
+
+    def do_connect(self):
+        utils.read_all(self.connection)
+        utils.write_line(self.connection, "?")
+        lines = utils.read_all(self.connection)
+        valid = False
+        for line in lines:
+            GLib.idle_add(self.append_log, " %s" % line)
+            valid = True
+        if valid:
+            GLib.idle_add(self.append_log, "Serial connection successful!")
+            self.update_all()
+        else:
+            GLib.idle_add(self.append_log, "Serial connection failed!")
+
+    def serial_get(self, cmd):
+        utils.write_line(self.connection, cmd)
+        out = utils.read_all(self.connection, 1)
+        for line in out:
+            print(line)
+            if line.startswith("CMD") and line.find(":") != -1:
+                return line.split(":")[1].strip()
+        return ""
+
+    def get_update_dict(self):
+        return {
+            "power": "",
+            "voltage": "",
+            "ampere": "",
+            "temperature": "",
+            "error": "",
+            "status": "",
+            "time": "",
+            "step": "",
+            "mode": "",
+        }
+
+    def update_all(self):
+        out = self.get_update_dict()
+        out['power'] = self.serial_get("w")
+        out['voltage'] = self.serial_get("v")
+        print(out['voltage'])
+        out['ampere'] = self.serial_get("a")
+        out['temperature'] = self.serial_get("c")
+        out['error'] = self.serial_get("e")
+        out['status'] = self.serial_get("z")
+        out['time'] = self.serial_get("t")
+        out['step'] = self.serial_get("d")
+        out['mode'] = self.serial_get("m")
+        GLib.idle_add(self.update_gui, out)
+
+    def update_gui(self, data):
+        for k in data:
+            v = data[k]
+            if v == "":
+                continue
+            obj = ""
+            if k == "ampere":
+                obj = "serial_consumption_value"
+            elif k == "voltage":
+                obj = "serial_voltage_value"
+            elif k == "power":
+                obj = "serial_watts_value"
+            elif k == "temperature":
+                obj = "serial_ard_temp_value"
+            elif k == "time":
+                obj = "serial_rtc_time_value"
+            elif k == "step":
+                obj = "serial_eeprom_time_value"
+
+            if obj != "":
+                print(obj)
+                self.builder.get_object(obj).set_text(v)
 
     def append_log(self, what):
         buf = self.logger.get_buffer()
