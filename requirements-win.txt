@@ -1,0 +1,3 @@
+GladeBuilder
+matplotlib
+pyserial
