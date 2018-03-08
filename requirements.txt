@@ -1,0 +1,6 @@
+GladeBuilder
+matplotlib
+pycairo
+pyserial
+vext
+vext.gi
