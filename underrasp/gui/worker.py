@@ -27,13 +27,13 @@ class Worker:
         self.thread.daemon = True
         self.thread.start()
 
-    def set_job(self, func, title=""):
+    def set_job(self, func, data=[], title=""):
         assert(self.job is None)
         if title == "":
             title = "Running command..."
         self.builder.get_object("wait_label").set_label(title)
         self.wait_dialog.show_all()
-        self.job = func
+        self.job = lambda: func(*data)
 
     def done(self):
         self.idle_add(self.wait_dialog.hide)

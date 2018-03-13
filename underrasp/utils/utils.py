@@ -32,7 +32,10 @@ def read_all(ser, timeout=1):
             break
         if line == "":
             break
-        line = line.decode('ascii')
+        try:
+            line = line.decode('ascii')
+        except:
+            continue
         lines.append(line)
     return lines
 
