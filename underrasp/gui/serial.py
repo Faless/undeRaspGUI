@@ -3,6 +3,20 @@ from ..utils import utils
 
 class SerialGUI:
 
+    MAP = [
+        ("power", "w", "watts", None),
+        ("voltage", "v", "voltage", None),
+        ("ampere", "a", "consumption", None),
+        ("temperature", "c", "ard_temp", None),
+        ("error", "e", "", None),
+        ("status", "z", "", None),
+        ("time", "t", "rtc_time", None),
+        ("step", "d", "eeprom_time",
+            lambda s: "n/a" if len(s) != 13 else "%s/%s/20%s %s:%s %s" % \
+                    (s[0:2], s[2:4], s[4:6], s[6:8], s[8:10], s[10:13])),
+        ("mode", "m", "", None),
+    ]
+
     def __init__(self, builder, logger, worker):
         self.builder = builder
         self.logger = logger
@@ -90,40 +104,19 @@ class SerialGUI:
 
     def update_all(self):
         utils.read_all(self.connection, 1)
-        out = self.get_update_dict()
-        out['power'] = self.serial_get("w")
-        out['voltage'] = self.serial_get("v")
-        out['ampere'] = self.serial_get("a")
-        out['temperature'] = self.serial_get("c")
-        out['error'] = self.serial_get("e")
-        out['status'] = self.serial_get("z")
-        out['time'] = self.serial_get("t")
-        out['step'] = self.serial_get("d")
-        out['mode'] = self.serial_get("m")
+        out = {}
+        for (name, cmd, gui, func) in SerialGUI.MAP:
+            if cmd == "":
+                continue
+            out[name] = self.serial_get(cmd)
         GLib.idle_add(self.update_gui, out)
 
     def update_gui(self, data):
-        for k in data:
-            v = data[k]
-            if v == "":
+        for (name, cmd, gui, func) in SerialGUI.MAP:
+            if name not in data or gui == "":
                 continue
-            obj = ""
-            if k == "ampere":
-                obj = "serial_consumption_value"
-            elif k == "voltage":
-                obj = "serial_voltage_value"
-            elif k == "power":
-                obj = "serial_watts_value"
-            elif k == "temperature":
-                obj = "serial_ard_temp_value"
-            elif k == "time":
-                obj = "serial_rtc_time_value"
-            elif k == "step":
-                obj = "serial_eeprom_time_value"
-
-            if obj != "":
-                print(obj)
-                self.builder.get_object(obj).set_text(v)
+            val = data[name] if func is None else func(data[name])
+            self.builder.get_object("serial_%s_value" % gui).set_text(val)
 
     def append_log(self, what):
         buf = self.logger.get_buffer()
