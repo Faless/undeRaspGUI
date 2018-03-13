@@ -14,7 +14,7 @@ class SerialGUI:
         ("time", "t", "rtc_time", None),
         ("step", "d", "eeprom_time",
             lambda s: "n/a" if len(s) != 13 else "%s/%s/20%s %s:%s %s" % \
-                    (s[0:2], s[2:4], s[4:6], s[6:8], s[8:10], s[10:13])),
+                    (s[4:6], s[2:4], s[0:2], s[6:8], s[8:10], s[10:13])),
         ("mode", "m", "", None),
     ]
 
@@ -162,7 +162,14 @@ class SerialGUI:
         GLib.idle_add(self.update_gui, out)
 
     def eeprom_time_set(self, time, step):
-        print(time, step)
+        cmd = "D%s%03d" % (time.strftime("%y%m%d%H%M"), int(step))
+        if(self.serial_set(cmd)):
+            log = "EEPROM Time set: %s" % cmd
+        else:
+            log = "Error setting EEPRTOM time: %s" % cmd
+        GLib.idle_add(self.append_log, log)
+        out = {"step": self.serial_get("d")}
+        GLib.idle_add(self.update_gui, out)
         pass
 
     def append_log(self, what):
