@@ -57,6 +57,8 @@ class SerialGUI:
         lines = utils.read_all(self.connection)
         valid = False
         for line in lines:
+            if line.strip() == "":
+                continue
             self.worker.idle_add(self.append_log, " %s" % line)
             valid = True
         if valid:
@@ -67,9 +69,8 @@ class SerialGUI:
 
     def serial_get(self, cmd):
         utils.write_line(self.connection, cmd)
-        out = utils.read_all(self.connection, 1)
+        out = utils.read_all(self.connection, .1)
         for line in out:
-            print(line)
             if line.startswith("CMD") and line.find(":") != -1:
                 return line.split(":")[1].strip()
         return ""
@@ -88,10 +89,10 @@ class SerialGUI:
         }
 
     def update_all(self):
+        utils.read_all(self.connection, 1)
         out = self.get_update_dict()
         out['power'] = self.serial_get("w")
         out['voltage'] = self.serial_get("v")
-        print(out['voltage'])
         out['ampere'] = self.serial_get("a")
         out['temperature'] = self.serial_get("c")
         out['error'] = self.serial_get("e")
@@ -128,6 +129,3 @@ class SerialGUI:
         buf = self.logger.get_buffer()
         buf.insert(buf.get_end_iter(), "%s\n" % what)
         return False
-
-
-
