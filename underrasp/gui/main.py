@@ -27,13 +27,14 @@ class UnderRaspWaterGUI:
         self.window.connect("delete-event", self.on_quit)
 
         # Sensor data signals
-        self.builder.get_object("net_read_sensors_btn").connect("button-release-event", self.read_sensors_data)
+        #self.builder.get_object("net_read_sensors_btn").connect("button-release-event", self.read_sensors_data)
 
         # Sensor data signals
-        self.builder.get_object("net_browse_images_btn").connect("button-release-event", self.open_browser)
+        #self.builder.get_object("net_browse_images_btn").connect("button-release-event", self.open_browser)
 
+        tabs = self.builder.get_object("tabs")
         # Setup SerialGUI
-        self.serialgui = SerialGUI(self.builder, self.worker)
+        self.serialgui = SerialGUI(self.window, tabs, self.worker)
 
         # Show window
         self.window.show_all()

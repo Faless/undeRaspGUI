@@ -1,4 +1,5 @@
 from . import Gtk, GLib
+from .time_dialog import TimeDialog
 from ..utils import utils
 from datetime import datetime, timedelta
 
@@ -18,15 +19,25 @@ class SerialGUI:
         ("mode", "m", "", None),
     ]
 
-    def __init__(self, builder, worker):
-        self.builder = builder
+    def __init__(self, window, panel, worker):
+        self.builder = Gtk.Builder()
+        self.builder.add_from_file("serial.xml")
+
+        self.time_dialog = TimeDialog(window)
         self.logger = self.get_obj("serial_logs_view")
         self.worker = worker
         self.connection = None
+
+        # Add Serial tab
+        label = Gtk.Label()
+        label.set_text("Serial")
+        panel.append_page(self.get_obj("serial_panel"), label)
+
         self.refresh_ports()
         self.get_obj("serial_connect_btn").connect("toggled", self.connect_serial)
         self.get_obj("serial_commands_list").set_sensitive(False)
         self.get_obj("serial_refresh_btn").connect("button-release-event", self.refresh_release)
+
         # Timestamp editing signals
         self.get_obj("serial_eeprom_time_write").connect("button-release-event", self.open_time_dialog)
         self.get_obj("serial_rtc_time_write").connect("button-release-event", self.open_time_dialog)
@@ -122,39 +133,19 @@ class SerialGUI:
             val = data[name] if func is None else func(data[name])
             self.get_obj("serial_%s_value" % gui).set_text(val)
 
-    def update_time_dialog(self, eeprom):
-        date = datetime.utcnow()
-        self.get_obj("calendar").select_month(date.month-1, date.year)
-        self.get_obj("calendar").select_day(date.day)
-        self.get_obj("hours_value").set_value(date.hour)
-        self.get_obj("minutes_value").set_value(date.minute)
-        if eeprom:
-            self.get_obj("sec_adjustment").set_upper(255)
-            self.get_obj("sec_adjustment").set_lower(15)
-            self.get_obj("seconds_value").set_value(15)
-        else:
-            self.get_obj("sec_adjustment").set_upper(59)
-            self.get_obj("sec_adjustment").set_lower(0)
-            self.get_obj("seconds_value").set_value(date.second)
-
     def open_time_dialog(self, widget, event):
-        time_dialog = self.get_obj("time_dialog")
         name = Gtk.Buildable.get_name(widget)
-        self.update_time_dialog(name == "serial_eeprom_time_write")
-        time_dialog.show()
-        response = time_dialog.run()
-        time_dialog.hide()
+        self.time_dialog.update_time_dialog(name == "serial_eeprom_time_write")
+        self.time_dialog.show()
+        response = self.time_dialog.run()
+        self.time_dialog.hide()
         if response == Gtk.ResponseType.OK:
-            hours = int(self.get_obj("hours_value").get_value())
-            mins = int(self.get_obj("minutes_value").get_value())
-            secs = int(self.get_obj("seconds_value").get_value())
-            date = self.get_obj("calendar").get_date()
-            dt = datetime(date[0], date[1]+1, date[2], hours, mins)
             if name == "serial_rtc_time_write":
-                dt += timedelta(seconds=secs)
+                dt = self.time_dialog.get_date_time()
                 self.worker.set_job(self.rtc_time_set, data=[dt], title="Sending data to RTC")
             else:
-                self.worker.set_job(self.eeprom_time_set, data=[dt, secs], title="Sending data to EEPROM")
+                dt, step = self.time_dialog.get_time_step()
+                self.worker.set_job(self.eeprom_time_set, data=[dt, step], title="Sending data to EEPROM")
 
     def rtc_time_set(self, time):
         cmd = "T%s" % time.strftime("%y%m%d%H%M%S")
