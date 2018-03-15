@@ -846,7 +846,7 @@
                                     <property name="can_focus">False</property>
                                     <property name="homogeneous">True</property>
                                     <child>
-                                      <object class="GtkButton" id="serial_eeprom_time_read">
+                                      <object class="GtkButton" id="serial_eeprom_time_read_btn">
                                         <property name="label" translatable="yes">Read</property>
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
@@ -921,7 +921,7 @@
                                     <property name="can_focus">False</property>
                                     <property name="homogeneous">True</property>
                                     <child>
-                                      <object class="GtkButton" id="serial_rtc_time_read">
+                                      <object class="GtkButton" id="serial_rtc_time_read_btn">
                                         <property name="label" translatable="yes">Read</property>
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>

@@ -31,6 +31,11 @@ class SerialGUI:
         self.get_obj("serial_eeprom_time_write").connect("button-release-event", self.open_time_dialog)
         self.get_obj("serial_rtc_time_write").connect("button-release-event", self.open_time_dialog)
 
+        for (name, cmd, gui, func) in SerialGUI.MAP:
+            if gui == "":
+                continue
+            self.get_obj("serial_%s_read_btn" % gui).connect("button-release-event", self.read_release)
+
     def refresh_release(self, widget, event):
         self.refresh_ports()
 
@@ -171,6 +176,21 @@ class SerialGUI:
         out = {"step": self.serial_get("d")}
         GLib.idle_add(self.update_gui, out)
         pass
+
+    def read_release(self, widget, event):
+        cur = Gtk.Buildable.get_name(widget).replace("serial_", "").replace("_read_btn", "")
+        self.worker.set_job(self.read_value, data=[cur])
+
+    def read_value(self, elem):
+        for (name, cmd, gui, func) in SerialGUI.MAP:
+            if elem != gui:
+                continue
+            val = self.serial_get(cmd)
+            if val == "":
+                GLib.idle_add(self.append_log, "Unable to read %s" % name)
+            else:
+                GLib.idle_add(self.update_gui, {name: val})
+            break
 
     def append_log(self, what):
         buf = self.logger.get_buffer()
