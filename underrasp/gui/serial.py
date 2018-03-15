@@ -10,13 +10,11 @@ class SerialGUI:
         ("voltage", "v", "voltage", None),
         ("ampere", "a", "consumption", None),
         ("temperature", "c", "ard_temp", None),
-        ("error", "e", "", None),
+        ("error", "e", "error", utils.error_filter),
         ("status", "z", "", None),
         ("time", "t", "rtc_time", None),
-        ("step", "d", "eeprom_time",
-            lambda s: "n/a" if len(s) != 13 else "%s/%s/20%s %s:%s %s" % \
-                    (s[4:6], s[2:4], s[0:2], s[6:8], s[8:10], s[10:13])),
-        ("mode", "m", "", None),
+        ("step", "d", "eeprom_time", utils.step_filter),
+        ("mode", "m", "mode", utils.mode_filter),
     ]
 
     def __init__(self, window, panel, worker):
@@ -41,6 +39,9 @@ class SerialGUI:
         # Timestamp editing signals
         self.get_obj("serial_eeprom_time_write").connect("button-release-event", self.open_time_dialog)
         self.get_obj("serial_rtc_time_write").connect("button-release-event", self.open_time_dialog)
+
+        # Error reset
+        self.get_obj("serial_error_write_btn").connect("button-release-event", self.reset_error_release)
 
         for (name, cmd, gui, func) in SerialGUI.MAP:
             if gui == "":
@@ -182,6 +183,17 @@ class SerialGUI:
             else:
                 GLib.idle_add(self.update_gui, {name: val})
             break
+
+    def reset_error_release(self, widget, event):
+        self.worker.set_job(self.reset_error, title="Clearing error")
+
+    def reset_error(self):
+        if self.serial_set("E"):
+            GLib.idle_add(self.append_log, "Cleared error")
+        else:
+            GLib.idle_add(self.append_log, "Unable to clear error")
+        val = self.serial_get("e")
+        GLib.idle_add(self.update_gui, {"error": val})
 
     def append_log(self, what):
         buf = self.logger.get_buffer()
