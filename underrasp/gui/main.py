@@ -4,6 +4,8 @@ from .worker import Worker
 from .serial import SerialGUI
 from .plotter import PlotterGUI
 from .browser import BrowserGUI
+from .network import NetworkGUI
+
 
 class UnderRaspWaterGUI:
 
@@ -18,13 +20,10 @@ class UnderRaspWaterGUI:
         # Parse the XML file
         self.builder = Gtk.Builder()
         self.builder.add_from_file("main.xml")
-
-        # Start worker
-        self.worker = Worker(self.builder, GLib.idle_add)
-
-        # Setup window and close event handling
         self.window = self.builder.get_object("window")
-        self.window.connect("delete-event", self.on_quit)
+
+        # Start serial worker
+        self.serial_worker = Worker(self.builder, GLib.idle_add)
 
         # Sensor data signals
         #self.builder.get_object("net_read_sensors_btn").connect("button-release-event", self.read_sensors_data)
@@ -33,15 +32,22 @@ class UnderRaspWaterGUI:
         #self.builder.get_object("net_browse_images_btn").connect("button-release-event", self.open_browser)
 
         tabs = self.builder.get_object("tabs")
+
+        # Setup NetworkGUI
+        self.networkgui = NetworkGUI(self.window, tabs)
+
         # Setup SerialGUI
-        self.serialgui = SerialGUI(self.window, tabs, self.worker)
+        self.serialgui = SerialGUI(self.window, tabs, self.serial_worker)
+
+        # Setup window and close event handling
+        self.window.connect("delete-event", self.on_quit)
 
         # Show window
         self.window.show_all()
 
     def on_quit(self, a, b):
-        self.worker.stop_thread = True
-        self.worker.thread.join()
+        self.serial_worker.stop_thread = True
+        self.serial_worker.thread.join()
         Gtk.main_quit(a, b)
 
     def read_sensors_data(self, widget, event):
