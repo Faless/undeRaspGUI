@@ -1,5 +1,6 @@
 from . import Gtk, GLib
 from .time_dialog import TimeDialog
+from .browser import BrowserGUI
 from ..utils.network import NetworkListener, NetworkPinger
 from ..utils import utils
 from datetime import datetime, timedelta
@@ -11,8 +12,12 @@ class NetworkGUI:
     def __init__(self, window, panel):
         self.builder = Gtk.Builder()
         self.builder.add_from_file("network.xml")
+        self.rpi_address = "localhost"
+        self.browser = None
 
         window.connect("delete-event", self.on_quit)
+
+        self.builder.get_object("net_browse_remote_btn").connect("button-release-event", self.open_browser)
 
         self.logger = self.get_obj("net_logs_view")
         self.listener = NetworkListener(Config.PORT,
@@ -51,10 +56,22 @@ class NetworkGUI:
         self.pinger.stop_wait()
 
     def connection_changed(self, connected):
+        btn = self.get_obj("net_browse_remote_btn")
         txt = 'Not connected'
         if connected:
             txt = 'Connected'
+            btn.set_sensitive(True)
+        else:
+            btn.set_sensitive(False)
         self.get_obj('status_value').set_text(txt)
+
+    def open_browser(self, widget, event):
+        if self.browser is not None:
+            self.browser.destroy()
+        self.browser = BrowserGUI()
+        url = "http://%s/data/" % self.rpi_address
+        print("Opening browser to URL: %s" % url)
+        self.browser.load_uri(url)
 
     def received(self, pkt):
         data = ''
@@ -81,6 +98,7 @@ class NetworkGUI:
             if self.get_obj("keepalive_btn").get_active() and not self.pinger.ping:
                 self.pinger.address = ip
                 self.pinger.ping = True
+            self.rpi_address = ip
         except Exception as e:
             print("Error receiving packet: %r" % e)
             pass

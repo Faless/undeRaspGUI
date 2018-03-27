@@ -341,9 +341,10 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkButton" id="net_browse_images_btn">
-                    <property name="label" translatable="yes">Browse camera images</property>
+                  <object class="GtkButton" id="net_browse_remote_btn">
+                    <property name="label" translatable="yes">Browse remote data points</property>
                     <property name="visible">True</property>
+                    <property name="sensitive">False</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
                   </object>

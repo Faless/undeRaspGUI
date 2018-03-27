@@ -3,7 +3,6 @@ import time
 from .worker import Worker
 from .serial import SerialGUI
 from .plotter import PlotterGUI
-from .browser import BrowserGUI
 from .network import NetworkGUI
 
 
@@ -53,12 +52,6 @@ class UnderRaspWaterGUI:
         if self.plotter is not None:
             self.plotter.destroy()
         self.plotter = PlotterGUI()
-
-    def open_browser(self, widget, event):
-        if self.browser is not None:
-            self.browser.destroy()
-        self.browser = BrowserGUI()
-        self.browser.load_uri("http://www.esa.int/")
 
     @staticmethod
     def run():
