@@ -46,8 +46,7 @@ class UnderRaspWaterGUI:
         self.window.show_all()
 
     def on_quit(self, a, b):
-        self.serial_worker.stop_thread = True
-        self.serial_worker.thread.join()
+        self.serial_worker.stop_wait()
         Gtk.main_quit(a, b)
 
     def read_sensors_data(self, widget, event):

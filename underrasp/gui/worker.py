@@ -1,7 +1,7 @@
-import threading
-import time
+from ..utils.thread import ThreadBase
+from time import sleep
 
-class Worker:
+class Worker(ThreadBase):
 
     @staticmethod
     def _worker(gui):
@@ -10,7 +10,7 @@ class Worker:
                 gui.job()
                 gui.job = None
                 gui.done()
-            time.sleep(0.05)
+            sleep(0.05)
 
     def __init__(self, builder, idle_add):
 
@@ -20,12 +20,8 @@ class Worker:
 
         # This is the job funciton, will be executed by the worker if not None
         self.job = None
-        self.stop_thread = False
 
-        # Init the worker
-        self.thread = threading.Thread(target=Worker._worker, args=(self,))
-        self.thread.daemon = True
-        self.thread.start()
+        super(Worker, self).__init__(Worker._worker)
 
     def set_job(self, func, data=[], title=""):
         assert(self.job is None)
