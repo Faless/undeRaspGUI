@@ -3,6 +3,7 @@ from .time_dialog import TimeDialog
 from ..utils import utils
 from datetime import datetime, timedelta
 
+
 class SerialGUI:
 
     MAP = [
@@ -101,6 +102,11 @@ class SerialGUI:
             self.update_all()
         else:
             self.worker.idle_add(self.append_log, "Serial connection failed!")
+            self.worker.idle_add(self.connection_failed)
+
+    def connection_failed(self):
+        self.get_obj("serial_connect_btn").set_active(False)
+        self.get_obj("serial_commands_list").set_sensitive(False)
 
     def serial_set(self, cmd):
         utils.write_line(self.connection, cmd)
